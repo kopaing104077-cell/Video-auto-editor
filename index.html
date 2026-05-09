@@ -3,109 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video Editor - Stable Version</title>
+    <title>AI Video Auto-Editor - Pro Version</title>
     
     <script src="coi-serviceworker.js"></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
     <style>
-        body { background-color: #0b0f1a; color: white; font-family: sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.08); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { background-color: #05070a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .btn-gradient { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); transition: all 0.3s ease; }
+        .btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5); }
+        .loading-ring { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-4">
-    <div class="max-w-2xl mx-auto">
-        <div class="glass p-8 rounded-3xl mt-10 shadow-2xl">
-            <h1 class="text-2xl font-bold text-center text-blue-400 mb-6">AI Video Auto-Editor</h1>
-            
-            <div class="space-y-5">
-                <div>
-                    <label class="text-sm text-gray-400">Video ရွေးပါ:</label>
-                    <input type="file" id="videoInput" accept="video/*" class="w-full mt-1">
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 mb-3">
+                AI Video Auto-Editor
+            </h1>
+            <p class="text-gray-400 text-sm md:text-base italic">Copyright လွတ် Video များကို စက္ကန့်ပိုင်းအတွင်း ဖန်တီးပါ</p>
+        </header>
+
+        <div class="grid grid-cols-1 gap-8">
+            <div class="glass p-6 md:p-8 rounded-[2rem] shadow-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-blue-300"><i class="fa-solid fa-video mr-2"></i>မူရင်း Video ရွေးပါ</label>
+                        <input type="file" id="videoInput" accept="video/*" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-pink-300"><i class="fa-solid fa-image mr-2"></i>Channel Logo (PNG) ရွေးပါ</label>
+                        <input type="file" id="logoInput" accept="image/png" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-pink-600 file:text-white hover:file:bg-pink-700">
+                    </div>
                 </div>
-                <div>
-                    <label class="text-sm text-gray-400">Logo ရွေးပါ (PNG):</label>
-                    <input type="file" id="logoInput" accept="image/png" class="w-full mt-1">
-                </div>
-                
-                <button id="processBtn" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 py-3 rounded-xl font-bold">
-                    ဗီဒီယို ပြုပြင်မည်
+
+                <button id="processBtn" class="btn-gradient w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center space-x-3">
+                    <span id="btnText">ဗီဒီယိုကို စတင်ပြုပြင်မည်</span>
                 </button>
+
+                <div id="statusArea" class="mt-4 hidden flex items-center justify-center space-x-3 bg-black/40 py-3 rounded-xl">
+                    <div class="loading-ring"></div>
+                    <span id="statusText" class="text-xs font-mono text-yellow-400 uppercase tracking-widest">Processing...</span>
+                </div>
             </div>
 
-            <div id="status" class="mt-4 text-center text-xs text-yellow-500 font-mono italic"></div>
-        </div>
+            <div id="resultArea" class="hidden space-y-6">
+                <div class="glass p-4 rounded-[2rem] overflow-hidden">
+                    <h3 class="text-center text-sm font-bold mb-4 text-gray-400 uppercase tracking-tighter">Preview Result</h3>
+                    <video id="outputVideo" controls class="w-full rounded-xl shadow-2xl bg-black"></video>
+                    <div class="flex justify-center mt-6">
+                        <a id="downloadBtn" class="bg-green-600 hover:bg-green-700 text-white px-10 py-3 rounded-full font-bold shadow-lg flex items-center">
+                            <i class="fa-solid fa-download mr-2"></i> ဗီဒီယိုကိုသိမ်းမည်
+                        </a>
+                    </div>
+                </div>
 
-        <div class="mt-8">
-            <video id="outputVideo" controls class="w-full rounded-2xl hidden shadow-2xl"></video>
-            <div id="metadata" class="hidden glass p-5 rounded-2xl mt-4 border-l-4 border-blue-500"></div>
+                <div class="glass p-6 rounded-[2rem] border-t-2 border-blue-500/30">
+                    <h3 class="text-xl font-bold text-blue-400 mb-4"><i class="fa-solid fa-rocket mr-2"></i>Marketing Kit</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <p class="text-[10px] text-blue-300 font-bold uppercase mb-1">Catchy Title</p>
+                            <p id="resTitle" class="text-white font-semibold"></p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <p class="text-[10px] text-pink-300 font-bold uppercase mb-1">Viral Description</p>
+                            <p id="resDesc" class="text-sm text-gray-300"></p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <p class="text-[10px] text-green-300 font-bold uppercase mb-1">Hashtags</p>
+                            <p id="resTags" class="text-blue-400 font-mono text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        
-        // Configuration ကို ပိုမိုတည်ငြိမ်သော Core သို့ ပြောင်းလဲထားသည်
         const ffmpeg = createFFmpeg({ 
             log: true,
-            mainName: 'main',
-            corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+            corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
         });
 
         const btn = document.getElementById('processBtn');
-        const status = document.getElementById('status');
+        const statusArea = document.getElementById('statusArea');
+        const statusText = document.getElementById('statusText');
+        const resultArea = document.getElementById('resultArea');
 
         btn.addEventListener('click', async () => {
             const videoFile = document.getElementById('videoInput').files[0];
             const logoFile = document.getElementById('logoInput').files[0];
 
-            if (!videoFile) return alert("Video အရင်ရွေးပါ");
+            if (!videoFile) return alert("ဗီဒီယိုဖိုင် အရင်ရွေးပေးပါဦး!");
 
             btn.disabled = true;
-            btn.innerText = "Processing...";
-            
+            statusArea.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+
             try {
                 if (!ffmpeg.isLoaded()) {
-                    status.innerText = "Connecting to AI Engine (FFmpeg)...";
+                    statusText.innerText = "Engine တက်လာအောင် လုပ်နေသည်...";
                     await ffmpeg.load();
                 }
 
-                status.innerText = "Video ကို စစ်ဆေးနေသည်...";
-                ffmpeg.FS('writeFile', 'video.mp4', await fetchFile(videoFile));
+                statusText.innerText = "ဖိုင်များကို ဖတ်နေသည်...";
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
 
-                let filter = '-an'; // Default: Mute audio
                 if (logoFile) {
-                    status.innerText = "Logo ကပ်နေသည်...";
+                    statusText.innerText = "Logo ကပ်နေသည် (ULTRAFAST)...";
                     ffmpeg.FS('writeFile', 'logo.png', await fetchFile(logoFile));
-                    // Scale logo and put top-right
-                    await ffmpeg.run('-i', 'video.mp4', '-i', 'logo.png', '-filter_complex', '[1:v]scale=100:-1[wm];[0:v][wm]overlay=main_w-wc-10:10', '-an', '-c:a', 'copy', 'out.mp4');
+                    
+                    // 🚀 Optimization: Preset ultrafast for speed
+                    // Scale logo to 10% of width or fixed 100px
+                    await ffmpeg.run(
+                        '-i', 'input.mp4', 
+                        '-i', 'logo.png', 
+                        '-filter_complex', '[1:v]scale=100:-1[wm];[0:v][wm]overlay=W-w-15:15', 
+                        '-preset', 'ultrafast',
+                        '-an', 
+                        'output.mp4'
+                    );
                 } else {
-                    await ffmpeg.run('-i', 'video.mp4', '-an', 'out.mp4');
+                    statusText.innerText = "မူရင်းအသံ ဖယ်ရှားနေသည်...";
+                    await ffmpeg.run('-i', 'input.mp4', '-an', '-preset', 'ultrafast', 'output.mp4');
                 }
 
-                status.innerText = "Rendering ပြီးစီးပါပြီ!";
-                const data = ffmpeg.FS('readFile', 'out.mp4');
-                const videoSrc = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+                statusText.innerText = "အကုန်လုံး ပြီးစီးပါပြီ!";
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
                 
-                const outVid = document.getElementById('outputVideo');
-                outVid.src = videoSrc;
-                outVid.classList.remove('hidden');
+                document.getElementById('outputVideo').src = url;
+                document.getElementById('downloadBtn').href = url;
+                document.getElementById('downloadBtn').download = `Edited_AI_${Date.now()}.mp4`;
+                
+                generateMarketing(videoFile.name);
+                resultArea.classList.remove('hidden');
 
-                // Marketing Text
-                const meta = document.getElementById('metadata');
-                meta.innerHTML = `<h3 class='text-blue-400 font-bold'>Suggested Title</h3><p class='text-sm mt-1'>🔥 ဒါကတော့ အလန်းစားပဲဗျာ! #viral #trending</p>`;
-                meta.classList.remove('hidden');
+                // Cleanup Memory
+                ffmpeg.FS('unlink', 'input.mp4');
+                if(logoFile) ffmpeg.FS('unlink', 'logo.png');
 
-            } catch (e) {
-                console.error(e);
-                status.innerText = "Error: " + e.message;
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = "ERROR: " + err.message;
             } finally {
                 btn.disabled = false;
-                btn.innerText = "ဗီဒီယို ပြုပြင်မည်";
+                statusArea.classList.add('hidden');
             }
         });
+
+        function generateMarketing(name) {
+            const titles = ["ဒါကို သင်သိပြီးပြီလား? 😱", "လူတိုင်းကြည့်သင့်တဲ့ အမိုက်စားဗီဒီယို ✨", "ကြည့်ပြီးရင် Share ဖို့မမေ့နဲ့ဦး! 👇"];
+            document.getElementById('resTitle').innerText = titles[Math.floor(Math.random()*titles.length)];
+            document.getElementById('resDesc').innerText = "ဒီဗီဒီယိုက သင့်အတွက် ဗဟုသုတ တစ်ခုခု ပေးနိုင်မှာပါ။ အဆုံးထိ ကြည့်ပေးလို့ ကျေးဇူးတင်ပါတယ်။ အခုလို Content တွေ အမြဲကြည့်ဖို့ Follow လုပ်ထားပေးပါဦး။";
+            document.getElementById('resTags').innerText = "#viral #foryou #trending #myanmar #knowledge #fyp #ai_edit";
+        }
     </script>
 </body>
 </html>
